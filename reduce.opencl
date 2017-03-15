@@ -58,7 +58,7 @@ __kernel void reduction_sum_scalar_complete2(
     int lid = get_local_id(0);
     __local int partial_sums[128];
     int group_size = get_local_size(0);
-    partial_sums[lid] = input[get_local_id(0)];
+    partial_sums[lid] = test_get(input, get_local_id(0));
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for (int i = group_size/2; i > 0; i >>= 1) {
