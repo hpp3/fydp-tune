@@ -1,4 +1,3 @@
-#define WORKGROUPSIZE 32
 __kernel void myGEMM2(const int M, const int N, const int K,
                       const __global float* A,
                       const __global float* B,
