@@ -69,6 +69,7 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
     stringstream ss;
 
     // constants
+    ss << "#define GROUP_SIZE_name " << work_group_size << endl;
     ss << "#define name_bitwidth " << bitwidth << endl;
     ss << "#define name_bitwidthLog2 " << bitwidth_log2 << endl;
     ss << "#define name_valuesPerCell " << indices_per_cell << endl;
