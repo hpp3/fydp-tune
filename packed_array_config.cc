@@ -69,7 +69,7 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
     stringstream ss;
 
     // constants
-    ss << "#define GROUP_SIZE_name " << work_group_size << endl;
+    ss << "#define name_GROUP_SIZE " << work_group_size << endl;
     ss << "#define name_bitwidth " << bitwidth << endl;
     ss << "#define name_bitwidthLog2 " << bitwidth_log2 << endl;
     ss << "#define name_valuesPerCell " << indices_per_cell << endl;
@@ -201,25 +201,25 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
       ss << "}" << endl;
 
       ss << 
-          "void prefetch_2D_row_major_name(const uint tileID, const uint M, __global const uint* const ga, __local uint* la) {"
+          "void prefetch_2D_row_major_name(const uint tileID, const uint M, __global const uint* const ga, __local uint** la) {"
           << endl;
 
       ss << "const int row = get_local_id(0);" << endl;
       ss << "const int col = get_local_id(1);" << endl;
       ss << "const int globalRow = WORKGROUPSIZE * get_group_id(0) + row;" << endl;
       ss << "const int tiledCol = WORKGROUPSIZE * tileID + col;" << endl;
-      ss << "la[col*M + row] = ga[tiledCol*M + globalRow];" << endl;
+      ss << "la[col][row] = ga[tiledCol*M + globalRow];" << endl;
       ss << "}" << endl;
 
       ss << 
-          "void prefetch_2D_col_major_name(const uint tileID, const uint K, __global const uint* const ga, __local uint* la) {"
+          "void prefetch_2D_col_major_name(const uint tileID, const uint K, __global const uint* const ga, __local uint** la) {"
           << endl;
 
       ss << "const int row = get_local_id(0);" << endl;
       ss << "const int col = get_local_id(1);" << endl;
       ss << "const int globalCol = WORKGROUPSIZE * get_group_id(1) + col;" << endl;
       ss << "const int tiledRow = WORKGROUPSIZE * tileID + row;" << endl;
-      ss << "la[col*K + row] = ga[globalCol*K + tiledRow];" << endl;
+      ss << "la[col][row] = ga[globalCol*K + tiledRow];" << endl;
       ss << "}" << endl;
 
     }
