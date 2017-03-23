@@ -13,8 +13,8 @@ int main() {
     uint32_t K = 3;
     uint32_t group_size = 1;
 
-    PackedArrayImpl a("arrA", 8, M*K);
-    PackedArrayImpl b("arrB", 8, K*N);
+    PackedArrayImpl a("arrA", 32, M*K);
+    PackedArrayImpl b("arrB", 32, K*N);
 
     for(int i=0; i<M*K; i++) {
         a.set(i, i+1);
