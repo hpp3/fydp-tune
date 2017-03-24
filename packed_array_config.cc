@@ -151,10 +151,10 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
       ss << "#define INIT_VAR_name(global,local) __global const uint* (local) = (global);" << endl;
       ss << "#define INIT_VAR_2D_name(global,local) __global const uint* (local) = (global);" << endl;
       ss << 
-          "#define INIT_VAR_2D_row_major_name(global,local, tileID, M) __global const uint* (local) = (global);"
+          "#define INIT_VAR_2D_row_major_name(global,local, tileID, M) __global const uint (*(local))[WORKGROUPSIZE] = (global);"
           << endl;
       ss << 
-          "#define INIT_VAR_2D_col_major_name(global,local, tileID, K) __global const uint* (local) = (global);"
+          "#define INIT_VAR_2D_col_major_name(global,local, tileID, K) __global const uint (*(local))[WORKGROUPSIZE] = (global);"
           << endl;
     }
 
