@@ -30,7 +30,7 @@ class PackedArrayConfig {
         PackedArrayConfig(string name, int requested_bit_width, 
                 int section_count=1, int requested_indices_per_section=1);
 
-        string generateOpenCLCode(bool prefetch, int workgroupsize) const;
+        string generateOpenCLCode(bool prefetch, int workgroupsize, int prefetch_edge_size=0) const;
 };
 
 #endif

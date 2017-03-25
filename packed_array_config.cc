@@ -65,7 +65,7 @@ PackedArrayConfig::PackedArrayConfig(string name, int requested_bit_width,
     this->index_count = cell_count * indices_per_cell; 
 }
 
-string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size) const {
+string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size, int prefetch_edge_size) const {
     stringstream ss;
 
     // constants
@@ -136,8 +136,8 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
       ss << "uint name_getSectionID_2D() { return LINEAR_GROUP_ID_name % NUMBER_OF_SECTIONS;}" << endl;
       ss << "#define INIT_VAR_name(global,local) __local uint (local)[CELLS_PER_SECTION]; "
           << "prefetch_name(name_getSectionID(), get_local_id(0), (global), (local));" << endl;
-      ss << "#define INIT_VAR_2D_name(global,local) __local uint (local)[CELLS_PER_SECTION]; "
-         <<  "prefetch_name(name_getSectionID_2D(), LINEAR_LOCAL_ID_name, (global), (local));" << endl;
+      ss << "#define INIT_VAR_2D_name(global, local) __local uint (local)[WORKGROUPSIZE+2*PREFETCH_EDGE_SIZE][WORKGROUPSIZE+2*PREFETCH_EDGE_SIZE]; "
+         <<  "prefetch_2D_name((global), (local));" << endl;
       ss << 
           "#define INIT_VAR_2D_row_major_name(global,local, tileID, M) __local uint (local)[WORKGROUPSIZE][WORKGROUPSIZE]; "
               << "prefetch_2D_row_major_name(tileID, M, (global), (local));" << endl;
@@ -200,6 +200,105 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
       ss << "  barrier(CLK_LOCAL_MEM_FENCE);" << endl;
       ss << "}" << endl;
 
+      ss << "void prefetch_2D_name(__global const uint* const ga, __local uint* la) {" << endl;
+
+      ss << "const int col = get_local_id(0);" << endl;
+      ss << "const int row = get_local_id(1);" << endl;
+      ss << "const int cacheCol = col + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "const int cacheRow = row + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "const int globalCol = WORKGROUPSIZE * get_group_id(0) + col;" << endl;
+      ss << "const int globalRow = WORKGROUPSIZE * get_group_id(1) + row;" << endl;
+      ss << "const int N = get_global_size(0);" << endl;
+      ss << "const int M = get_global_size(1);" << endl;
+
+      ss << "const int cacheColSize = WORKGROUPSIZE + PREFETCH_EDGE_SIZE*2;";
+      ss << "la[cacheCol*cacheColSize + cacheRow] = ga[globalCol*N + globalRow];" << endl;
+
+
+      ss << "if ( row < PREFETCH_EDGE_SIZE ) {" << endl;
+      ss << "int edgeRow = cacheRow - PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeGlobalRow = globalRow - PREFETCH_EDGE_SIZE;" << endl;
+      ss << "if ( 0 <= edgeGlobalRow && edgeGlobalRow <  M ) " << endl;
+      ss << "   la[cacheCol*cacheColSize + edgeRow] = ga[globalCol*N + edgeGlobalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[cacheCol*cacheColSize + edgeRow] = 0;" << endl;
+      ss << "}" << endl;
+
+
+      ss << "if ( row >= WORKGROUPSIZE - PREFETCH_EDGE_SIZE) {" << endl;
+      ss << "int edgeRow = cacheRow + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeGlobalRow = globalRow + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "if ( 0 <= edgeGlobalRow && edgeGlobalRow <  M ) " << endl;
+      ss << "   la[cacheCol*cacheColSize + edgeRow] = ga[globalCol*N + edgeGlobalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[cacheCol*cacheColSize + edgeRow] = 0;" << endl;
+      ss << "}" << endl;
+
+      ss << "if ( col < PREFETCH_EDGE_SIZE ) {" <<endl;
+      ss << "int edgeCol = cacheCol - PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "int edgeGlobalCol = globalCol - PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "if ( 0 <= edgeGlobalCol && edgeGlobalCol <  N ) " << endl;
+      ss << "   la[edgeCol*cacheColSize + cacheRow] = ga[edgeGlobalCol*N + globalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[edgeCol*cacheColSize + cacheRow] = 0;" << endl;
+      ss << "}" << endl;
+
+      ss << "if ( col >= WORKGROUPSIZE - PREFETCH_EDGE_SIZE ) {" <<endl;
+      ss << "int edgeCol = cacheCol + PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "int edgeGlobalCol = globalCol + PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "if ( 0 <= edgeGlobalCol && edgeGlobalCol <  N ) " << endl;
+      ss << "   la[edgeCol*cacheColSize + cacheRow] = ga[edgeGlobalCol*N + globalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[edgeCol*cacheColSize + cacheRow] = 0;" << endl;
+      ss << "}" << endl;
+
+      ss << "if ( row < PREFETCH_EDGE_SIZE && col < PREFETCH_EDGE_SIZE ) {" <<endl;
+      ss << "int edgeRow = cacheRow - PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeGlobalRow = globalRow - PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeCol = cacheCol - PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "int edgeGlobalCol = globalCol - PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "if (  0 <= edgeGlobalRow && edgeGlobalRow <  M && 0 <= edgeGlobalCol && edgeGlobalCol <  N ) " << endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = ga[edgeGlobalCol*N + edgeGlobalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = 0;" << endl;
+      ss << "}" << endl;
+
+      ss << "if ( row >= WORKGROUPSIZE - PREFETCH_EDGE_SIZE && col >= WORKGROUPSIZE - PREFETCH_EDGE_SIZE) {" <<endl;
+      ss << "int edgeRow = cacheRow + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeGlobalRow = globalRow + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeCol = cacheCol + PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "int edgeGlobalCol = globalCol + PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "if (  0 <= edgeGlobalRow && edgeGlobalRow <  M && 0 <= edgeGlobalCol && edgeGlobalCol <  N ) " << endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = ga[edgeGlobalCol*N + edgeGlobalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = 0;" << endl;
+      ss << "}" << endl;
+
+      ss << "if ( row < PREFETCH_EDGE_SIZE  && col >= WORKGROUPSIZE - PREFETCH_EDGE_SIZE) {" <<endl;
+      ss << "int edgeRow = cacheRow - PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeGlobalRow = globalRow - PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeCol = cacheCol + PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "int edgeGlobalCol = globalCol + PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "if (  0 <= edgeGlobalRow && edgeGlobalRow <  M && 0 <= edgeGlobalCol && edgeGlobalCol <  N ) " << endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = ga[edgeGlobalCol*N + edgeGlobalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = 0;" << endl;
+      ss << "}" << endl;
+
+      ss << "if ( row >= WORKGROUPSIZE - PREFETCH_EDGE_SIZE && col < PREFETCH_EDGE_SIZE) {" <<endl;
+      ss << "int edgeRow = cacheRow + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeGlobalRow = globalRow + PREFETCH_EDGE_SIZE;" << endl;
+      ss << "int edgeCol = cacheCol - PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "int edgeGlobalCol = globalCol - PREFETCH_EDGE_SIZE;" <<endl;
+      ss << "if (  0 <= edgeGlobalRow && edgeGlobalRow <  M && 0 <= edgeGlobalCol && edgeGlobalCol <  N ) " << endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = ga[edgeGlobalCol*N + edgeGlobalRow];" << endl;
+      ss << "else" <<endl;
+      ss << "   la[edgeCol*cacheColSize + edgeRow] = 0;" << endl;
+      ss << "}" << endl;
+
+      ss << "barrier(CLK_LOCAL_MEM_FENCE);" << endl;
+      ss << "}" << endl;
+
       ss << 
           "void prefetch_2D_row_major_name(const uint tileID, const uint M, __global const uint* const ga, __local uint* la) {"
           << endl;
@@ -231,6 +330,7 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
     output = replaceString(output, "NUMBER_OF_SECTIONS", to_string(section_count));
     output = replaceString(output, "CELLS_PER_SECTION", to_string(cells_per_section));
     output = replaceString(output, "WORKGROUPSIZE", to_string(work_group_size));
+    output = replaceString(output, "PREFETCH_EDGE_SIZE", to_string(prefetch_edge_size));
     output = replaceString(output, "LOOP_BOUND_FLOOR", to_string(loop_bound_floor));
     output = replaceString(output, "LOOP_BOUND_CEIL", to_string(loop_bound_ceil));
     output = replaceString(output, "SCOPE", prefetch ? "__local" : "__global");
