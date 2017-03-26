@@ -24,9 +24,9 @@ public:
 		ss << "#define " << name << "_width " << width << endl;
 		ss << "#define " << name << "_height " << height << endl;
 		if (row_major) {
-			ss << "2D_" << name << "_get(arr, i, j) " << name << "_get(arr, i*" << name << "_width+j)" << endl;
+			ss << "#define _2D_" << name << "_get(arr, i, j) " << name << "_get(arr, i*" << name << "_width+j)" << endl;
 		} else {
-			ss << "2D_" << name << "_get(arr, i, j) " << name << "_get(arr, j*" << name << "_height+i)" << endl;
+			ss << "#define _2D_" << name << "_get(arr, i, j) " << name << "_get(arr, j*" << name << "_height+i)" << endl;
 		}
 		return ss.str();
 	}
