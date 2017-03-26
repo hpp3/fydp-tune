@@ -10,14 +10,14 @@ using namespace std;
 int main() {
 
     // size of image
-    const int M1 = 500;
-    const int N1 = 500;
+    const int M1 = 256;
+    const int N1 = 256;
 
     // size of filter
     // must be odd, can be at most group_size*2+1
-    const int M2 = 13;
-    const int N2 = 13;
-    const int group_size = 10;
+    const int M2 = 11;
+    const int N2 = 11;
+    const int group_size = 16;
 
     PackedArrayImpl imgArr("imgArr", 32, M1*N1);
     for(int i=0; i<M1*N1; i++) {
@@ -61,10 +61,17 @@ int main() {
 
 
     cltune::Tuner tuner(size_t{0}, size_t{1});
-    auto id = tuner.AddKernelFromString(full_kernel, "conv_prefetch", {M1, N1}, {group_size, group_size});
-    tuner.AddKernel({"./conv_simple.cl"}, "conv_simple", {M1, N1}, {group_size, group_size});
-    tuner.SetReference({"./conv_ref.cl"}, "ref", {M1, N1}, {group_size, group_size});
+    tuner.AddKernelFromString(full_kernel, "conv_prefetch", {N1, M1}, {group_size, group_size});
+    tuner.AddKernel({"./conv_simple.cl"}, "conv_simple", {N1, M1}, {group_size, group_size});
 
+    auto id = tuner.AddKernel({"./conv_raw_prefetch.cl"}, "conv_raw_prefetch", {N1, M1}, {group_size, group_size});
+    tuner.AddParameter(id, "GLOBAL_NUM_COL", {N1});
+    tuner.AddParameter(id, "GLOBAL_NUM_ROW", {M1});
+    tuner.AddParameter(id, "LOCAL_NUM_COL", {group_size});
+    tuner.AddParameter(id, "LOCAL_NUM_ROW", {group_size});
+    tuner.AddParameter(id, "HALF_FILTER_SIZE", {M2/2});
+
+    tuner.SetReference({"./conv_ref.cl"}, "ref", {N1, M1}, {group_size, group_size});
     tuner.AddArgumentInput(img);
     tuner.AddArgumentInput(filter);
     tuner.AddArgumentScalar(M2);
@@ -77,4 +84,3 @@ int main() {
     return 0;
 }
 
-// =================================================================================================
