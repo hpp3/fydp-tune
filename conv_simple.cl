@@ -8,8 +8,8 @@ __kernel void conv_simple(
 
     const int col = get_global_id(0);
     const int row = get_global_id(1);
-    const int globalNumRow = get_global_size(0);
-
+    const int globalNumCol = get_global_size(0);
+    const int globalNumRow = get_global_size(1);
     const int half_filter_size = filter_size/2;
 
     int sum = 0;
@@ -19,7 +19,7 @@ __kernel void conv_simple(
             int finalCol = col + c;
             int finalRow = row + r;
 
-            if ( 0 <= finalCol && finalCol < filter_size && 0 <= finalRow && finalRow < filter_size )
+            if ( 0 <= finalCol && finalCol < globalNumCol && 0 <= finalRow && finalRow < globalNumRow )
                 sum += img[finalCol*globalNumRow+finalRow] * filter[fIdx];
         }
     }

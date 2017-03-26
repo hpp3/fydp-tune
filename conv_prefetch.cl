@@ -10,7 +10,7 @@ __kernel void conv_prefetch(
 
     const int globalCol = get_global_id(0);
     const int globalRow = get_global_id(1);
-    const int globalNumRow = get_global_size(0);
+    const int globalNumRow = get_global_size(1);
 
     const int half_filter_size = filter_size/2;
     // ^ same as filter_size - 1, fitler size is assumed to be odd

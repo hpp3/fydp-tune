@@ -10,14 +10,14 @@ using namespace std;
 int main() {
 
     // size of image
-    const int M1 = 400;
-    const int N1 = 400;
+    const int M1 = 500;
+    const int N1 = 500;
 
     // size of filter
     // must be odd, can be at most group_size*2+1
-    const int M2 = 7;
-    const int N2 = 7;
-    const int group_size = 20;
+    const int M2 = 13;
+    const int N2 = 13;
+    const int group_size = 10;
 
     PackedArrayImpl imgArr("imgArr", 32, M1*N1);
     for(int i=0; i<M1*N1; i++) {
@@ -28,6 +28,7 @@ int main() {
     string kernel{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
     string header = imgArr.getConfig().generateOpenCLCode(true, group_size, M2/2);
     string full_kernel = header + kernel;
+    cout<<full_kernel<<endl;
 
     int32_t *imgCells = imgArr.getCells();
     vector<int32_t> img(imgCells, imgCells+imgArr.physical_capacity());
