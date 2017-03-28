@@ -24,7 +24,7 @@ void easy_reduce() {
     }
     PROCESS_VEC(data, "test");
 
-    std::string kernel = KERNEL_STRING("../samples/fydp-tune/reduce.opencl");
+    std::string kernel = KERNEL_STRING("./reduce.opencl");
 
     float total_time = 0;
     for (int i = 0; i < 100; i++) {
@@ -78,7 +78,7 @@ void tile() {
     }
 
 
-    ifstream infile{ "../samples/fydp-tune/multi_tile.cl" };
+    ifstream infile{ "./multi_tile.cl" };
     string kernel{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
     string headerA = a.getConfig().generateOpenCLCode(true, group_size);
     string headerB = b.getConfig().generateOpenCLCode(true, group_size);
@@ -114,7 +114,7 @@ void tile() {
 
     cltune::Tuner tuner(size_t{0}, size_t{0});
      tuner.AddKernelFromString(full_kernel, "multi_tile", {M, N}, {group_size, group_size});
-    tuner.SetReference({"../samples/fydp-tune/ref.cl"}, "ref", {M, N}, {group_size, group_size});
+    tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {group_size, group_size});
 
     tuner.AddArgumentScalar((int)M);
     tuner.AddArgumentScalar((int)N);
@@ -169,10 +169,10 @@ void easy_tile() {
     PROCESS_VEC(a, "arrA");
     PROCESS_VEC(b, "arrB");
 
-    std::string kernel = KERNEL_STRING("../samples/fydp-tune/multi_tile.cl");
+    std::string kernel = KERNEL_STRING("./multi_tile.cl");
     cltune::Tuner tuner(size_t{0}, size_t{0});
      tuner.AddKernelFromString(kernel, "multi_tile", {M, N}, {cpack_groupsize, cpack_groupsize});
-    //tuner.SetReference({"../samples/fydp-tune/ref.cl"}, "ref", {M, N}, {cpack_groupsize, cpack_groupsize});
+    //tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {cpack_groupsize, cpack_groupsize});
 
     tuner.AddArgumentScalar((int)M);
     tuner.AddArgumentScalar((int)N);
@@ -225,10 +225,10 @@ void easy_mult() {
     PROCESS_VEC(a, "arrA");
     PROCESS_VEC(b, "arrB");
 
-    std::string kernel = KERNEL_STRING("../samples/fydp-tune/matrix.cl");
+    std::string kernel = KERNEL_STRING("./matrix.cl");
     cltune::Tuner tuner(size_t{0}, size_t{0});
     tuner.AddKernelFromString(kernel, "matrixMult", {M, N}, {cpack_groupsize, cpack_groupsize});
-    //tuner.SetReference({"../samples/fydp-tune/ref.cl"}, "ref", {M, N}, {cpack_groupsize, cpack_groupsize});
+    //tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {cpack_groupsize, cpack_groupsize});
 
     tuner.AddArgumentScalar((int)M);
     tuner.AddArgumentScalar((int)N);
@@ -254,7 +254,7 @@ void mult() {
     PackedArrayImpl b("arrB", 32, K*N);
 
 
-    ifstream infile{ "../samples/fydp-tune/matrix.cl" };
+    ifstream infile{ "./matrix.cl" };
     string kernel{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
     string headerA = a.getConfig().generateOpenCLCode(false, group_size);
     string headerB = b.getConfig().generateOpenCLCode(false, group_size);
@@ -280,7 +280,7 @@ void mult() {
 
     cltune::Tuner tuner(size_t{0}, size_t{0});
      tuner.AddKernelFromString(full_kernel, "matrixMult", {M, N}, {group_size, group_size});
-    tuner.SetReference({"../samples/fydp-tune/ref.cl"}, "ref", {M, N}, {group_size, group_size});
+    tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {group_size, group_size});
 
     tuner.AddArgumentScalar((int)M);
     tuner.AddArgumentScalar((int)N);
@@ -320,7 +320,7 @@ void rowcol() {
         }
     }
 
-    ifstream infile{ "../samples/fydp-tune/new_multi.cl" };
+    ifstream infile{ "./new_multi.cl" };
     string kernel{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
     // Note: generateOpenCLCode is called on a and b NOT on their config
     string headerA = a.generateOpenCLCode(true, group_size); // no prefetch
@@ -351,7 +351,7 @@ void rowcol() {
 
     cltune::Tuner tuner(size_t{0}, size_t{0});
      tuner.AddKernelFromString(full_kernel, "multi", {M, N}, {group_size, group_size});
-    tuner.SetReference({"../samples/fydp-tune/ref.cl"}, "ref", {M, N}, {group_size, group_size});
+    tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {group_size, group_size});
 
     tuner.AddArgumentScalar((int)M);
     tuner.AddArgumentScalar((int)N);
@@ -405,7 +405,7 @@ void both() {
         }
     }
 
-    ifstream infile{ "../samples/fydp-tune/new_multi.cl" };
+    ifstream infile{ "./new_multi.cl" };
     string kernel{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
 
 
@@ -423,7 +423,7 @@ void both() {
 
     cltune::Tuner tuner(size_t{0}, size_t{0});
      tuner.AddKernelFromString(kernel, "myGEMM2", {M, N}, {group_size, group_size});
-    tuner.SetReference({"../samples/fydp-tune/ref.cl"}, "ref", {M, N}, {group_size, group_size});
+    tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {group_size, group_size});
 
     tuner.AddArgumentScalar((int)M);
     tuner.AddArgumentScalar((int)N);
@@ -476,7 +476,7 @@ void both_tile() {
         }
     }
 
-    ifstream infile{ "../samples/fydp-tune/multi_tile.cl" };
+    ifstream infile{ "./multi_tile.cl" };
     string kernel{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
     // Note: generateOpenCLCode is called on a and b NOT on their config
     string headerA = a.generateOpenCLCode(true, group_size); // no prefetch
@@ -513,7 +513,7 @@ void both_tile() {
 
     cltune::Tuner tuner(size_t{0}, size_t{0});
      tuner.AddKernelFromString(full_kernel, "multi_tile", {M, N}, {group_size, group_size});
-    tuner.SetReference({"../samples/fydp-tune/ref.cl"}, "ref", {M, N}, {group_size, group_size});
+    tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {group_size, group_size});
 
     tuner.AddArgumentScalar((int)M);
     tuner.AddArgumentScalar((int)N);
@@ -529,6 +529,61 @@ void both_tile() {
     tuner.Tune();
 }
 
+void easy_both() {
+    TUNE_START_2D(vector<int>({32}), vector<int>({8,16,32}), vector<bool>({true, false}), vector<bool>({true, false}));
+    //TUNE_START(vector<int>({4}), vector<int>({8}), vector<bool>({true}));
+    uint32_t dim = 1024;
+    uint32_t M = dim;
+    uint32_t N = dim;
+    uint32_t K = dim;
+
+
+    vector<int32_t> a;
+    vector<int32_t> b;
+    std::vector<int32_t> target(M*N);
+    std::vector<int32_t> arrC(M*N);
+
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < K; j++) {
+            a.push_back((i*M + j) % 16);
+        }
+    }
+    
+    for (size_t i = 0; i < K; i++) {
+        for (size_t j = 0; j < N; j++) {
+            b.push_back((i*K + j) % 16);
+        }
+    }
+
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            target[i*N + j] = 0;
+            for (size_t k = 0; k < K; k++) {
+                target[i*N+ j] += a[i*K+k] * b[k*N+j]; 
+            }
+        }
+    }
+
+    PROCESS_VEC_2D(a, "arrA", M);
+    PROCESS_VEC_2D(b, "arrB", K);
+
+    std::string kernel = KERNEL_STRING_2D("./multi_tile.cl");
+    cltune::Tuner tuner(size_t{0}, size_t{0});
+     tuner.AddKernelFromString(kernel, "multi_tile", {M, N}, {cpack_groupsize, cpack_groupsize});
+    //tuner.SetReference({"./ref.cl"}, "ref", {M, N}, {cpack_groupsize, cpack_groupsize});
+
+    tuner.AddArgumentScalar((int)M);
+    tuner.AddArgumentScalar((int)N);
+    tuner.AddArgumentScalar((int)K);
+    tuner.AddArgumentInput(a);
+    tuner.AddArgumentInput(b);
+    tuner.AddArgumentInput(target);
+    tuner.AddArgumentOutput(arrC);
+    tuner.SetNumRuns(100);
+
+    tuner.Tune();
+    TUNE_END_2D(tuner);
+}
 int main() {
 
     //easy_tile();
@@ -536,8 +591,8 @@ int main() {
     //easy_reduce();
     //rowcol();
     //easy_mult();
-    //both();
-    both_tile();
+    //both_tile();
     //easy_reduce();
+    easy_both();
     return 0;
 }
