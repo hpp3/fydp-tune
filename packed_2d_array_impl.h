@@ -15,8 +15,13 @@ using namespace std;
 class Packed2DArrayImpl {
 public:
 	Packed2DArrayImpl(const string name, const int32_t requested_bitwidth, const int32_t height, const int32_t width, bool row_major) 
-		: impl(PackedArrayImpl(name, requested_bitwidth, height*width)), name(name), width(width), height(height), row_major(row_major) {
+		: Packed2DArrayImpl(name, requested_bitwidth, 1, height, width, row_major) {
 	}
+
+	Packed2DArrayImpl(const string name, const int32_t requested_bitwidth, const int32_t section_count, const int32_t height, const int32_t width, bool row_major) 
+		: impl(PackedArrayImpl(name, requested_bitwidth, section_count, height*width, row_major)), name(name), width(width), height(height), row_major(row_major) {
+	}
+
 
 	string generateOpenCLCode(bool prefetch, int group_size) {
 		stringstream ss;
@@ -67,19 +72,19 @@ public:
 		impl.append(value);
     }
 
-    void set(const int32_t i, const int32_t j, const int32_t value) {
+    void set(const int32_t y, const int32_t x, const int32_t value) {
 		if (row_major) {
-			impl.set(i*width + j, value);
+			impl.set(y*width + x, value);
 		} else {
-			impl.set(j*height + i, value);
+			impl.set(x*height + y, value);
 		}
     }
 
-    int32_t get(const int32_t i, const int32_t j) const {
+    int32_t get(const int32_t y, const int32_t x) const {
 		if (row_major) {
-			return impl.get(i*width + j);
+			return impl.get(y*width + x);
 		} else {
-			return impl.get(j*height+ i);
+			return impl.get(x*height+ y);
 		}
     }
 
@@ -89,10 +94,10 @@ public:
     }
 
 private:
+	PackedArrayImpl impl;
+	string name;
 	int32_t width;
 	int32_t height;
-	string name;
-	PackedArrayImpl impl;
 	bool row_major;
 };
 

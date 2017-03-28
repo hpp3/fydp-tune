@@ -30,8 +30,9 @@ string replaceString(string subject, const string& search,
     return subject;
 }
 
+
 PackedArrayConfig::PackedArrayConfig(string name, int requested_bit_width, 
-        int section_count, int requested_indices_per_section) {
+        int section_count, int requested_indices_per_section, bool row_major) {
     this->name = name;
 
     if (requested_bit_width <= 0) {
@@ -63,12 +64,17 @@ PackedArrayConfig::PackedArrayConfig(string name, int requested_bit_width,
 
     this->cell_count = section_count * cells_per_section;
     this->index_count = cell_count * indices_per_cell; 
+    this->row_major = row_major;
 }
 
 string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size) const {
+    if (prefetch && this->bitwidth != 32) {
+        throw "bit packing (bitsize != 32) cannot be combined with prefetching!";
+    }
     stringstream ss;
 
     // constants
+    ss << "#define name_ROW_MAJOR " << row_major << endl;
     ss << "#define name_GROUP_SIZE " << work_group_size << endl;
     ss << "#define name_bitwidth " << bitwidth << endl;
     ss << "#define name_bitwidthLog2 " << bitwidth_log2 << endl;
@@ -139,11 +145,11 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
       ss << "#define INIT_VAR_2D_name(global,local) __local uint (local)[CELLS_PER_SECTION]; "
          <<  "prefetch_name(name_getSectionID_2D(), LINEAR_LOCAL_ID_name, (global), (local));" << endl;
       ss << 
-          "#define INIT_VAR_2D_row_major_name(global,local, tileID, M) __local uint (local)[WORKGROUPSIZE][WORKGROUPSIZE]; "
-              << "prefetch_2D_row_major_name(tileID, M, (global), (local));" << endl;
+          "#define INIT_VAR_2D_row_major_name(global,local, tileID, M, K) __local uint (local)[WORKGROUPSIZE][WORKGROUPSIZE]; "
+              << "prefetch_2D_row_major_name(tileID, M, K, (global), (local));" << endl;
       ss << 
-          "#define INIT_VAR_2D_col_major_name(global,local, tileID, K) __local uint (local)[WORKGROUPSIZE][WORKGROUPSIZE]; "
-              << "prefetch_2D_col_major_name(tileID, K, (global), (local));" << endl;
+          "#define INIT_VAR_2D_col_major_name(global,local, tileID, K, N) __local uint (local)[WORKGROUPSIZE][WORKGROUPSIZE]; "
+              << "prefetch_2D_col_major_name(tileID, K, N, (global), (local));" << endl;
     } else {
       ss << 
           "int name_get(SCOPE const uint* const a, const uint index) { return name_get2(a, name_cell(index), name_subcell(index)); }"
@@ -201,25 +207,41 @@ string PackedArrayConfig::generateOpenCLCode(bool prefetch, int work_group_size)
       ss << "}" << endl;
 
       ss << 
-          "void prefetch_2D_row_major_name(const uint tileID, const uint M, __global const uint* const ga, __local uint* la) {"
+          "void prefetch_2D_row_major_name(const uint tileID, const uint M, const uint K, __global const uint* const ga, __local uint* la) {"
           << endl;
 
       ss << "const int row = get_local_id(0);" << endl;
       ss << "const int col = get_local_id(1);" << endl;
-      ss << "const int globalRow = WORKGROUPSIZE * get_group_id(0) + row;" << endl;
-      ss << "const int tiledCol = WORKGROUPSIZE * tileID + col;" << endl;
-      ss << "la[col*WORKGROUPSIZE + row] = ga[tiledCol*M + globalRow];" << endl;
+      if (!row_major) {
+          ss << "const int globalRow = WORKGROUPSIZE * get_group_id(0) + row;" << endl;
+          ss << "const int tiledCol = WORKGROUPSIZE * tileID + col;" << endl;
+          ss << "la[col*WORKGROUPSIZE + row] = ga[tiledCol*M + globalRow];" << endl;
+          //ss << "printf(\"name: globalRow=%d, tiledCol=%d, M=%d, index=%d\\n\", globalRow, tiledCol, M, tiledCol*M+globalRow);" << endl;
+      } else {
+          ss << "const int globalRow = WORKGROUPSIZE * get_group_id(0) + row;" << endl;
+          ss << "const int tiledCol = WORKGROUPSIZE * tileID + col;" << endl;
+          ss << "la[col*WORKGROUPSIZE + row] = ga[globalRow*K + tiledCol];" << endl;
+          //ss << "printf(\"name: globalRow=%d, tiledCol=%d, M=%d, index=%d\\n\", globalRow,  tiledCol, M, globalRow*M+tiledCol);" << endl;
+      }
       ss << "}" << endl;
 
       ss << 
-          "void prefetch_2D_col_major_name(const uint tileID, const uint K, __global const uint* const ga, __local uint* la) {"
+          "void prefetch_2D_col_major_name(const uint tileID, const uint K, const uint N, __global const uint* const ga, __local uint* la) {"
           << endl;
 
       ss << "const int row = get_local_id(0);" << endl;
       ss << "const int col = get_local_id(1);" << endl;
-      ss << "const int globalCol = WORKGROUPSIZE * get_group_id(1) + col;" << endl;
-      ss << "const int tiledRow = WORKGROUPSIZE * tileID + row;" << endl;
-      ss << "la[col*WORKGROUPSIZE + row] = ga[globalCol*K + tiledRow];" << endl;
+      if (!row_major) {
+          ss << "const int globalCol = WORKGROUPSIZE * get_group_id(1) + col;" << endl;
+          ss << "const int tiledRow = WORKGROUPSIZE * tileID + row;" << endl;
+          ss << "la[col*WORKGROUPSIZE + row] = ga[globalCol*K + tiledRow];" << endl;
+          //ss << "printf(\"name: globalCol=%d, tiledRow=%d, K=%d, index=%d\\n\", globalCol, tiledRow, K, globalCol*K+tiledRow);" << endl;
+      } else {
+          ss << "const int globalCol = WORKGROUPSIZE * get_group_id(1) + col;" << endl;
+          ss << "const int tiledRow = WORKGROUPSIZE * tileID + row;" << endl;
+          ss << "la[col*WORKGROUPSIZE + row] = ga[tiledRow*N + globalCol];" << endl;
+          //ss << "printf(\"name: globalCol=%d, tiledRow=%d, K=%d, index=%d\\n\", globalCol, tiledRow, K, tiledRow*K+globalCol);" << endl;
+      }
       ss << "}" << endl;
 
     }

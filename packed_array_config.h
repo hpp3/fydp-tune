@@ -25,10 +25,12 @@ class PackedArrayConfig {
         int cells_per_section;
         int cell_count;
 
+        int row_major;
+
 
     public:
         PackedArrayConfig(string name, int requested_bit_width, 
-                int section_count=1, int requested_indices_per_section=1);
+                int section_count=1, int requested_indices_per_section=1, bool row_major=true);
 
         string generateOpenCLCode(bool prefetch, int workgroupsize) const;
 };

@@ -32,8 +32,8 @@ public:
         : PackedArrayImpl(name, requested_bitwidth, 1, requested_capacity) {
     }
 
-    PackedArrayImpl(const string name, const int32_t requested_bitwidth, const int32_t section_count, const int32_t indices_per_section)
-        : PackedArrayImpl(PackedArrayConfig(name, requested_bitwidth, section_count, indices_per_section)) {
+    PackedArrayImpl(const string name, const int32_t requested_bitwidth, const int32_t section_count, const int32_t indices_per_section, bool row_major=true)
+        : PackedArrayImpl(PackedArrayConfig(name, requested_bitwidth, section_count, indices_per_section, row_major)) {
     }
 
     PackedArrayImpl(const PackedArrayConfig &config)

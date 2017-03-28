@@ -12,18 +12,21 @@ __kernel void multi_tile(const int M, const int N, const int K,
     int acc = 0.0f;
     
     const int numTiles = K/arrA_GROUP_SIZE;
+
     for (int t=0; t<numTiles; t++) {
-        INIT_VAR_2D_row_major_arrA(A, A_sub, t, M)
-        INIT_VAR_2D_col_major_arrB(B, B_sub, t, K)
+        INIT_VAR_2D_row_major_arrA(A, A_sub, t, M, K)
+        INIT_VAR_2D_col_major_arrB(B, B_sub, t, K, N)
         barrier(CLK_LOCAL_MEM_FENCE);
 
         for (int k=0; k<arrA_GROUP_SIZE; k++) {
             acc += A_sub[k][row] * B_sub[col][k];
+            //printf("a[%d][%d] (=%d) * b[%d][%d] (=%d) (globalCol=%d, globalRow=%d, tileId=%d)\n", k, row, A_sub[k][row], col, k, B_sub[col][k], globalCol, globalRow, t);
         }
  
         barrier(CLK_LOCAL_MEM_FENCE);
     }
  
     // Store the final result in C
+    //printf("[%d][%d] <- %d\n", globalCol, globalRow, acc);
     C[globalCol*M + globalRow] = acc;
 }
