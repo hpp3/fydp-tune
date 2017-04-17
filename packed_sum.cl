@@ -3,7 +3,9 @@ __kernel void packed_sum(
     __global uint* const sum)
 {
     const int tid = get_global_id(0);
-    const int bit = test_get(packed_input, tid);
+
+    INIT_VAR_test(packed_input, input)
+    const int bit = test_get(input, tid);
 
     atomic_add(&sum[0], bit);
 }
