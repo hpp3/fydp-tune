@@ -1,0 +1,14 @@
+{
+  "device": "GeForce GTX 960M",
+  "device_vendor": "NVIDIA Corporation",
+  "device_type": "GPU",
+  "device_core_clock": "1176",
+  "device_compute_units": "5",
+  "results": [
+    {
+      "kernel": "multi_tile",
+      "time": 11.999,
+      "parameters": {}
+    }
+  ]
+}
